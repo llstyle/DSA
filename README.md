@@ -56,7 +56,8 @@ app.exe
 
 Пример:
 
-```bash
+````bash
 gcc -Wall main.c -o app -lm
 
-```
+```xs
+````
