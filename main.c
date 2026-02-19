@@ -221,6 +221,148 @@ void searchEvent(const Event *events, int count)
         printf("Ничего не найдено.\n");
 }
 
+void sortEvents(Event *events, int count)
+{
+    if (count == 0)
+    {
+        printf("[!] Список пуст.\n");
+        return;
+    }
+
+    printf("\n--- Сортировка ---\n");
+    printf("1. По названию\n");
+    printf("2. По дате\n");
+    printf("3. По месту\n");
+    printf("4. По количеству участников\n");
+    printf("Выбор > ");
+
+    int choice;
+    scanf("%d", &choice);
+    clear_buffer();
+
+    // Сортировка пузырьком
+    for (int i = 0; i < count - 1; i++)
+    {
+        for (int j = 0; j < count - i - 1; j++)
+        {
+            int needSwap = 0;
+
+            switch (choice)
+            {
+            case 1:
+                needSwap = strcmp(events[j].name, events[j + 1].name) > 0;
+                break;
+            case 2:
+                needSwap = strcmp(events[j].date, events[j + 1].date) > 0;
+                break;
+            case 3:
+                needSwap = strcmp(events[j].location, events[j + 1].location) > 0;
+                break;
+            case 4:
+                needSwap = events[j].participants > events[j + 1].participants;
+                break;
+            default:
+                printf("[!] Неверный выбор.\n");
+                return;
+            }
+
+            if (needSwap)
+            {
+                Event temp = events[j];
+                events[j] = events[j + 1];
+                events[j + 1] = temp;
+            }
+        }
+    }
+
+    printf("[OK] Список отсортирован.\n");
+}
+
+void insertEvent(Event **events, int *count, int *capacity)
+{
+    if (*count == 0)
+    {
+        printf("[!] Список пуст. Используйте добавление.\n");
+        return;
+    }
+
+    printEvents(*events, *count);
+
+    int position;
+    printf("\nВведите позицию для вставки (0-%d): ", *count);
+    scanf("%d", &position);
+    clear_buffer();
+
+    if (position < 0 || position > *count)
+    {
+        printf("[!] Неверная позиция.\n");
+        return;
+    }
+
+    if (*count >= *capacity)
+        expandArray(events, capacity);
+
+    for (int i = *count; i > position; i--)
+    {
+        (*events)[i] = (*events)[i - 1];
+    }
+
+    printf("\n--- Добавление события на позицию %d ---\n", position);
+
+    printf("Название: ");
+    fgets((*events)[position].name, STR_LEN, stdin);
+    clean_newline((*events)[position].name);
+
+    printf("Дата: ");
+    fgets((*events)[position].date, DATE_LEN, stdin);
+    clean_newline((*events)[position].date);
+
+    printf("Место: ");
+    fgets((*events)[position].location, STR_LEN, stdin);
+    clean_newline((*events)[position].location);
+
+    printf("Количество участников: ");
+    scanf("%d", &(*events)[position].participants);
+    clear_buffer();
+
+    (*count)++;
+    printf("[OK] Событие вставлено на позицию %d.\n", position);
+}
+
+void removeEventByIndex(Event **events, int *count, int *capacity)
+{
+    if (*count == 0)
+    {
+        printf("[!] Список пуст.\n");
+        return;
+    }
+
+    printEvents(*events, *count);
+
+    int index;
+    printf("\nВведите индекс для удаления (0-%d): ", *count - 1);
+    scanf("%d", &index);
+    clear_buffer();
+
+    if (index < 0 || index >= *count)
+    {
+        printf("[!] Неверный индекс.\n");
+        return;
+    }
+
+    printf("[INFO] Удаляется: %s\n", (*events)[index].name);
+
+    for (int i = index; i < *count - 1; i++)
+    {
+        (*events)[i] = (*events)[i + 1];
+    }
+
+    (*count)--;
+    printf("[OK] Элемент удалён.\n");
+
+    shrinkArray(events, capacity, *count);
+}
+
 void clearAll(Event **events, int *count, int *capacity)
 {
     free(*events);
@@ -248,7 +390,10 @@ int main()
         printf("3. Редактировать\n");
         printf("4. Поиск\n");
         printf("5. Удалить последний\n");
-        printf("6. Очистить список\n");
+        printf("6. Сортировать\n");
+        printf("7. Вставить на позицию\n");
+        printf("8. Удалить по индексу\n");
+        printf("9. Очистить список\n");
         printf("0. Выход\n");
         printf("Выбор > ");
 
@@ -273,6 +418,15 @@ int main()
             removeLastEvent(&events, &count, &capacity);
             break;
         case 6:
+            sortEvents(events, count);
+            break;
+        case 7:
+            insertEvent(&events, &count, &capacity);
+            break;
+        case 8:
+            removeEventByIndex(&events, &count, &capacity);
+            break;
+        case 9:
             clearAll(&events, &count, &capacity);
             break;
         case 0:
