@@ -28,6 +28,65 @@ void clear_buffer()
         ;
 }
 
+int isLeapYear(int year)
+{
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+int validateDate(const char *dateStr)
+{
+    int day, month, year;
+    char separator;
+    int parsed = 0;
+
+    if (sscanf(dateStr, "%d.%d.%d", &day, &month, &year) == 3)
+    {
+        separator = '.';
+        parsed = 1;
+    }
+    else if (sscanf(dateStr, "%d/%d/%d", &day, &month, &year) == 3)
+    {
+        separator = '/';
+        parsed = 1;
+    }
+    else if (sscanf(dateStr, "%d-%d-%d", &day, &month, &year) == 3)
+    {
+        separator = '-';
+        parsed = 1;
+    }
+
+    if (!parsed)
+    {
+        printf("[!] Неверный формат даты. Используйте DD.MM.YYYY, DD/MM/YYYY или DD-MM-YYYY\n");
+        return 0;
+    }
+
+    if (year < 1900 || year > 2100)
+    {
+        printf("[!] Год должен быть от 1900 до 2100\n");
+        return 0;
+    }
+
+    if (month < 1 || month > 12)
+    {
+        printf("[!] Месяц должен быть от 1 до 12\n");
+        return 0;
+    }
+
+    int daysInMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+    if (month == 2 && isLeapYear(year))
+        daysInMonth[1] = 29;
+
+    if (day < 1 || day > daysInMonth[month - 1])
+    {
+        printf("[!] Неверный день для месяца %d (допустимо 1-%d)\n", month, daysInMonth[month - 1]);
+        return 0;
+    }
+
+    return 1;
+}
+
 void expandArray(Event **events, int *capacity)
 {
     int newCapacity = (*capacity == 0) ? 1 : (*capacity * 2);
@@ -83,9 +142,16 @@ void addEvent(Event **events, int *count, int *capacity)
     fgets((*events)[*count].name, STR_LEN, stdin);
     clean_newline((*events)[*count].name);
 
-    printf("Дата: ");
-    fgets((*events)[*count].date, DATE_LEN, stdin);
-    clean_newline((*events)[*count].date);
+    int validDate = 0;
+    while (!validDate)
+    {
+        printf("Дата (DD.MM.YYYY): ");
+        fgets((*events)[*count].date, DATE_LEN, stdin);
+        clean_newline((*events)[*count].date);
+
+        if (validateDate((*events)[*count].date))
+            validDate = 1;
+    }
 
     printf("Место: ");
     fgets((*events)[*count].location, STR_LEN, stdin);
@@ -167,10 +233,19 @@ void editEvent(Event *events, int count)
         clean_newline(events[id].name);
         break;
     case 2:
-        printf("Новая дата: ");
-        fgets(events[id].date, DATE_LEN, stdin);
-        clean_newline(events[id].date);
-        break;
+    {
+        int validDate = 0;
+        while (!validDate)
+        {
+            printf("Новая дата (DD.MM.YYYY): ");
+            fgets(events[id].date, DATE_LEN, stdin);
+            clean_newline(events[id].date);
+
+            if (validateDate(events[id].date))
+                validDate = 1;
+        }
+    }
+    break;
     case 3:
         printf("Новое место: ");
         fgets(events[id].location, STR_LEN, stdin);
@@ -221,6 +296,44 @@ void searchEvent(const Event *events, int count)
         printf("Ничего не найдено.\n");
 }
 
+int compareDates(const char *date1, const char *date2)
+{
+    int day1, month1, year1;
+    int day2, month2, year2;
+
+    if (sscanf(date1, "%d.%d.%d", &day1, &month1, &year1) != 3 &&
+        sscanf(date1, "%d/%d/%d", &day1, &month1, &year1) != 3 &&
+        sscanf(date1, "%d-%d-%d", &day1, &month1, &year1) != 3)
+    {
+        if (sscanf(date1, "%d-%d-%d", &year1, &month1, &day1) == 3 && year1 > 31)
+        {
+        }
+        else
+        {
+            return strcmp(date1, date2);
+        }
+    }
+
+    if (sscanf(date2, "%d.%d.%d", &day2, &month2, &year2) != 3 &&
+        sscanf(date2, "%d/%d/%d", &day2, &month2, &year2) != 3 &&
+        sscanf(date2, "%d-%d-%d", &day2, &month2, &year2) != 3)
+    {
+        if (sscanf(date2, "%d-%d-%d", &year2, &month2, &day2) == 3 && year2 > 31)
+        {
+        }
+        else
+        {
+            return strcmp(date1, date2);
+        }
+    }
+
+    if (year1 != year2)
+        return year1 - year2;
+    if (month1 != month2)
+        return month1 - month2;
+    return day1 - day2;
+}
+
 void sortEvents(Event *events, int count)
 {
     if (count == 0)
@@ -253,7 +366,7 @@ void sortEvents(Event *events, int count)
                 needSwap = strcmp(events[j].name, events[j + 1].name) > 0;
                 break;
             case 2:
-                needSwap = strcmp(events[j].date, events[j + 1].date) > 0;
+                needSwap = compareDates(events[j].date, events[j + 1].date) > 0;
                 break;
             case 3:
                 needSwap = strcmp(events[j].location, events[j + 1].location) > 0;
@@ -313,9 +426,16 @@ void insertEvent(Event **events, int *count, int *capacity)
     fgets((*events)[position].name, STR_LEN, stdin);
     clean_newline((*events)[position].name);
 
-    printf("Дата: ");
-    fgets((*events)[position].date, DATE_LEN, stdin);
-    clean_newline((*events)[position].date);
+    int validDate = 0;
+    while (!validDate)
+    {
+        printf("Дата (DD.MM.YYYY): ");
+        fgets((*events)[position].date, DATE_LEN, stdin);
+        clean_newline((*events)[position].date);
+
+        if (validateDate((*events)[position].date))
+            validDate = 1;
+    }
 
     printf("Место: ");
     fgets((*events)[position].location, STR_LEN, stdin);
